@@ -135,7 +135,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+.idea/
+gdpr-env/
 # Spyder project settings
 .spyderproject
 .spyproject
