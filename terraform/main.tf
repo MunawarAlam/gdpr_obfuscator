@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "gdpr_ingestion_bucket"
+    bucket = "gdpr-state-bucket"
     key = "terraform.tfstate"
     region = "eu-north-1"
   }
