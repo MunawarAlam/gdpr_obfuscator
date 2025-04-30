@@ -1,9 +1,9 @@
 resource "aws_s3_bucket" "ingestion_bucket" {
-  bucket = "gdpr_ingestion_bucket"
+  bucket = "ma-gdpr-ingestion-bucket"
 }
 
 resource "aws_s3_bucket" "processed_bucket" {
-  bucket = "gdpr_processed_bucket"
+  bucket = "ma-gdpr-processed-bucket"
 }
 resource "aws_s3_bucket" "lambda_code_bucket" {
   bucket_prefix = "lambda-code-bucket"
