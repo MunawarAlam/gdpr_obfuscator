@@ -67,15 +67,15 @@ data "aws_iam_policy_document" "cloudwatch_policy_document" {
 }
 }
 
-resource "aws_iam_policy" "cloudwatch_policy" {
-  name = "lambda_cloudwatch_policy"
-  policy = data.aws_iam_policy_document.cloudwatch_policy_document.json
-}
-
-resource "aws_iam_role_policy_attachment" "cloudwatch_policy_attachment" {
-  role = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.cloudwatch_policy.arn
-}
+# resource "aws_iam_policy" "cloudwatch_policy" {
+#   name = "lambda_cloudwatch_policy"
+#   policy = data.aws_iam_policy_document.cloudwatch_policy_document.json
+# }
+#
+# resource "aws_iam_role_policy_attachment" "cloudwatch_policy_attachment" {
+#   role = aws_iam_role.lambda_role.name
+#   policy_arn = aws_iam_policy.cloudwatch_policy.arn
+# }
 
 resource "aws_iam_role" "iam_for_sfn" {
   name_prefix        = "role-for-sfn-"

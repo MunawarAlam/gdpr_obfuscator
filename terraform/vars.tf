@@ -1,4 +1,4 @@
-variable "SNS_EMAIL" {
-    type = string
-
-}
+# variable "SNS_EMAIL" {
+#     type = string
+#
+# }
