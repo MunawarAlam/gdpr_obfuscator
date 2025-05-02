@@ -51,12 +51,13 @@ def getting_access_to_file(initial_input):
     try:
         s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.ingestion_bucket, Key=buck_key)
         initial_df = pd.read_csv(s3_obj_req['Body'])
+        new_df = initial_df.loc[initial_df["First_Name"]] = "**"
     except ClientError as ex:
         if ex.response['Error']['Code'] == 'NoSuchKey':
             print("Key doesn't match. Please check the key value entered.")
             return
 
-    print(initial_df)
+    print(new_df)
 
     # ## write the data
     # data = read_file(bucket_name, key)
