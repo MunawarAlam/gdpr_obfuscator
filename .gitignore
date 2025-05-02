@@ -139,13 +139,7 @@ venv.bak/
 
 # Local .terraform directories
 
-**/.terraform/*
-terraform/.terraform/
-
-
-
-# Ignore override files
-*.tfoverride
+**/.terraform/
 
 *.lock.hcl
 gdpr-env/
