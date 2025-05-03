@@ -18,6 +18,9 @@ class GdprObfuscator:
         self.s3_client = boto3.client('s3')
         self.ingestion_bucket = ingestion_bucket
 
+def replace_string(strg):
+    return ("**********")
+
 
 def read_json_string(json_string):
     # Read JSON file
@@ -30,6 +33,9 @@ def getting_access_to_file(initial_input):
     initial_bucket = get_file_location[2]
     initial_bucket = initial_bucket.replace("_","-")
     gdpr_init.ingestion_bucket = initial_bucket
+    new_pii_fields = convert_json_dict['pii_fields']
+    print(new_pii_fields)
+
     try:
         chk_bucket_exist = gdpr_init.s3_client.head_bucket(Bucket=gdpr_init.ingestion_bucket)
         #print(chk_bucket_exist)
@@ -51,7 +57,12 @@ def getting_access_to_file(initial_input):
     try:
         s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.ingestion_bucket, Key=buck_key)
         initial_df = pd.read_csv(s3_obj_req['Body'])
-        new_df = initial_df.loc[initial_df["First_Name"]] = "**"
+
+        f_name_col = initial_df["First_Name"]
+        new_df = f_name_col.apply(replace_string)
+        initial_df["First_Name"] = new_df
+        print(initial_df.head(3))
+        #new_df = initial_df.loc[initial_df["First_Name"]] = "**"
     except ClientError as ex:
         if ex.response['Error']['Code'] == 'NoSuchKey':
             print("Key doesn't match. Please check the key value entered.")
