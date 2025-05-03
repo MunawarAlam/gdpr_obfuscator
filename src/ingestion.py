@@ -27,14 +27,22 @@ def read_json_string(json_string):
     dict_obj = json.loads(json_string)
     return dict_obj
 
+def gdpr_process(df, pii):
+
+    f_name_col = df["First_Name"]
+    new_df = f_name_col.apply(replace_string)
+    initial_df["First_Name"] = new_df
+
+    print(initial_df.head(3))
+
 def getting_access_to_file(initial_input):
     convert_json_dict = read_json_string(initial_input)
     get_file_location = convert_json_dict['file_to_obfuscate'].split('/')
     initial_bucket = get_file_location[2]
     initial_bucket = initial_bucket.replace("_","-")
     gdpr_init.ingestion_bucket = initial_bucket
-    new_pii_fields = convert_json_dict['pii_fields']
-    print(new_pii_fields)
+    pii_fields = convert_json_dict['pii_fields']
+    print(pii_fields)
 
     try:
         chk_bucket_exist = gdpr_init.s3_client.head_bucket(Bucket=gdpr_init.ingestion_bucket)
@@ -57,11 +65,10 @@ def getting_access_to_file(initial_input):
     try:
         s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.ingestion_bucket, Key=buck_key)
         initial_df = pd.read_csv(s3_obj_req['Body'])
+        gdpr_data = gdpr_process(initial_df, pii_fields)
 
-        f_name_col = initial_df["First_Name"]
-        new_df = f_name_col.apply(replace_string)
-        initial_df["First_Name"] = new_df
-        print(initial_df.head(3))
+
+
         #new_df = initial_df.loc[initial_df["First_Name"]] = "**"
     except ClientError as ex:
         if ex.response['Error']['Code'] == 'NoSuchKey':
