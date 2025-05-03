@@ -31,14 +31,16 @@ def gdpr_process(df, pii):
 
     #f_name_col = df["First_Name"]
     #new_df = f_name_col.apply(replace_string)
-    for pi in pii:
-        if pi in df:
-            print("field exist", pi)
-        else:
-            print("field NOT exist", pi)
+    new_pii = [pi.lower() for pi in pii]
+
+    for df_c in df.columns:
+        if df_c.lower() in new_pii:
+            print("found.. ", df_c)
+            df[df_c] = df[df_c].apply(replace_string)
 
     # initial_df["First_Name"] = new_df
-    # print(initial_df.head(3))
+    print(df.head(3))
+    return df
 
 def getting_access_to_file(initial_input):
     convert_json_dict = read_json_string(initial_input)
