@@ -35,7 +35,7 @@ def gdpr_process(df, pii):
 
     for df_c in df.columns:
         if df_c.lower() in new_pii:
-            print("found.. ", df_c)
+            print("field found.. ", df_c)
             df[df_c] = df[df_c].apply(replace_string)
 
     # initial_df["First_Name"] = new_df
