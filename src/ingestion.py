@@ -29,11 +29,13 @@ def read_json_string(json_string):
 
 def gdpr_process(df, pii):
 
-    f_name_col = df["First_Name"]
-    new_df = f_name_col.apply(replace_string)
+    #f_name_col = df["First_Name"]
+    #new_df = f_name_col.apply(replace_string)
     for pi in pii:
-        if pi in new_df:
+        if pi in df:
             print("field exist", pi)
+        else:
+            print("field NOT exist", pi)
 
     # initial_df["First_Name"] = new_df
     # print(initial_df.head(3))
@@ -78,7 +80,7 @@ def getting_access_to_file(initial_input):
             print("Key doesn't match. Please check the key value entered.")
             return
 
-    print(new_df)
+    #print(new_df)
 
     # ## write the data
     # data = read_file(bucket_name, key)
@@ -160,7 +162,7 @@ def lambda_handler(event, context):
         raise
 
 if __name__ == "__main__":
-    json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["name", "email_address"]}'
+    json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
     gdpr_init = GdprObfuscator()
     getting_access_to_file(json_string)
 # lambda_handler({
