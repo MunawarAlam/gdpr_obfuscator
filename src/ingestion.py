@@ -57,9 +57,10 @@ def getting_access_to_file(initial_input):
     except Exception:
         print("not exist")
         return
-    all_objects = s3_client.list_objects_v2(Bucket=gdpr_init.ingestion_bucket, Prefix='new_data/')
-    all_key_timestamps = [item['Key'] for item in all_objects['Contents']]
-    print(all_key_timestamps)
+
+    # all_objects = s3_client.list_objects_v2(Bucket=gdpr_init.ingestion_bucket, Prefix='new_data/')
+    # all_key_timestamps = [item['Key'] for item in all_objects['Contents']]
+    # print(all_key_timestamps)
 
     #print(chk_bucket_exist)
 
@@ -73,8 +74,6 @@ def getting_access_to_file(initial_input):
         s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.ingestion_bucket, Key=buck_key)
         initial_df = pd.read_csv(s3_obj_req['Body'])
         gdpr_data = gdpr_process(initial_df, pii_fields)
-
-
 
         #new_df = initial_df.loc[initial_df["First_Name"]] = "**"
     except ClientError as ex:
