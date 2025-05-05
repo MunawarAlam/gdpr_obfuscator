@@ -5,6 +5,7 @@ import logging
 import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
+import awswrangler as wr
 
 # Initialize the S3 client outside of the handler
 s3_client = boto3.client('s3')
@@ -42,6 +43,25 @@ def gdpr_process(df, pii):
     print(df.head(3))
     return df
 
+def save_to_s3(data, bucket_name, filename, client):
+    '''
+    Saves the data passes under a specific key in a specified S3 bucket.
+
+    Args:
+        data: the data to be saved to s3
+        bucket_name: The S3 bucket name.
+        filename: the key to save the object under
+        client: The S3 client to interact with S3.
+
+    Returns:
+        str: None.'''
+    data_JSON = json.dumps(data)
+    client.put_object(
+        Bucket=bucket_name,
+        Body=data_JSON,
+        Key=filename
+    )
+
 def getting_access_to_file(initial_input):
     convert_json_dict = read_json_string(initial_input)
     get_file_location = convert_json_dict['file_to_obfuscate'].split('/')
@@ -68,12 +88,26 @@ def getting_access_to_file(initial_input):
     dir_name = get_file_location[3]
     file_name = get_file_location[4]
     buck_key = f'{dir_name}/{file_name}'
+    s3_path = f's3://{gdpr_init.ingestion_bucket}/{dir_name}/{file_name}'
+    chunksize = 1000
+    print(s3_path)
     print(buck_key)
 
     try:
-        s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.ingestion_bucket, Key=buck_key)
-        initial_df = pd.read_csv(s3_obj_req['Body'])
-        gdpr_data = gdpr_process(initial_df, pii_fields)
+        ## Bulk Option
+        #
+        #s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.ingestion_bucket, Key=buck_key)
+        #initial_df = pd.read_csv(s3_obj_req['Body'])
+        #
+        ## Chunk Option
+        print("hellow")
+        for chunk in wr.s3.read_csv(path=s3_path, chunksize=chunksize):
+
+            print(chunk.head(), "head")
+
+
+
+        #gdpr_data = gdpr_process(initial_df, pii_fields)
 
         #new_df = initial_df.loc[initial_df["First_Name"]] = "**"
     except ClientError as ex:
@@ -82,7 +116,6 @@ def getting_access_to_file(initial_input):
             return
 
     #print(new_df)
-
     # ## write the data
     # data = read_file(bucket_name, key)
     # if data is None:
