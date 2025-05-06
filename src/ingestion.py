@@ -21,30 +21,44 @@ class GdprObfuscator:
         self.s3_client = boto3.client('s3')
         self.ingestion_bucket = ingestion_bucket
         self.obfuscated_bucket = 'ma-temp-processed-bucket'
+        self.chunk_size = 1000
+        self.buck_key = ''
+        self.pii_fields = []
+        self.s3_ingestion_path = ''
 
 def replace_string(strg):
     return ("**********")
 
 
-def read_json_string(json_string):
+def set_initial_input(json_string):
     # Read JSON file
     dict_obj = json.loads(json_string)
-    return dict_obj
+
+    get_file_location = dict_obj['file_to_obfuscate'].split('/')
+
+    initial_bucket = get_file_location[2]
+    dir_name = get_file_location[3]
+    file_name = get_file_location[4]
+
+    initial_bucket = initial_bucket.replace("_","-")
+    #
+    gdpr_init.ingestion_bucket = initial_bucket
+    gdpr_init.pii_fields = dict_obj['pii_fields']
+    gdpr_init.buck_key = f'{dir_name}/{file_name}'
+    gdpr_init.s3_ingestion_path = f's3://{gdpr_init.ingestion_bucket}/{dir_name}/{file_name}'
+
+    return #dict_obj
 
 def gdpr_process(df, pii):
-
-    #f_name_col = df["First_Name"]
-    #new_df = f_name_col.apply(replace_string)
     new_pii = [pi.lower() for pi in pii]
-
     for df_c in df.columns:
         if df_c.lower() in new_pii:
             print("field found.. ", df_c)
             df[df_c] = df[df_c].apply(replace_string)
-
-    # initial_df["First_Name"] = new_df
-    print(df.head(3))
     return df
+
+
+
 
 def save_to_s3(data, bucket_name, filename, client):
     '''
@@ -65,52 +79,62 @@ def save_to_s3(data, bucket_name, filename, client):
         Key=filename
     )
 
+
+
+
 def getting_access_to_file(initial_input):
-    convert_json_dict = read_json_string(initial_input)
-    get_file_location = convert_json_dict['file_to_obfuscate'].split('/')
-    initial_bucket = get_file_location[2]
-    initial_bucket = initial_bucket.replace("_","-")
-    gdpr_init.ingestion_bucket = initial_bucket
-    pii_fields = convert_json_dict['pii_fields']
-    print(pii_fields)
+
+    set_initial_input(initial_input)
+    #
+    # get_file_location = convert_json_dict['file_to_obfuscate'].split('/')
+    # initial_bucket = get_file_location[2]
+    # dir_name = get_file_location[3]
+    # file_name = get_file_location[4]
+    # #
+    # initial_bucket = initial_bucket.replace("_","-")
+    # gdpr_init.ingestion_bucket = initial_bucket
+    # #
+    #
+    # pii_fields = convert_json_dict['pii_fields']
+    # buck_key = f'{dir_name}/{file_name}'
+    # s3_ingestion_path = f's3://{gdpr_init.ingestion_bucket}/{dir_name}/{file_name}'
+
+    print(gdpr_init.pii_fields)
 
     try:
         gdpr_init.s3_client.head_bucket(Bucket=gdpr_init.ingestion_bucket)
+
     except Exception:
         print("not exist")
         return
 
-    dir_name = get_file_location[3]
-    file_name = get_file_location[4]
-    buck_key = f'{dir_name}/{file_name}'
-    s3_path = f's3://{gdpr_init.ingestion_bucket}/{dir_name}/{file_name}'
-    chunksize = 1000
-    print(s3_path)
-    print(buck_key)
+    print(gdpr_init.s3_ingestion_path)
+    print(gdpr_init.buck_key)
 
-    for chunk in wr.s3.read_csv(path=s3_path, chunksize=chunksize):
-        initial_df = pd.DataFrame(chunk)
-        gdpr_data = gdpr_process(initial_df, pii_fields)
-        gdpr_data.reset_index(drop=True, inplace=True)
+    for chunk in wr.s3.read_csv(path=gdpr_init.s3_ingestion_path, chunksize=gdpr_init.chunk_size):
         csv_buffer = StringIO()
+        initial_df = pd.DataFrame(chunk)
+        gdpr_data = gdpr_process(initial_df, gdpr_init.pii_fields)
+        gdpr_data.reset_index(drop=True, inplace=True)
         gdpr_data.to_csv(csv_buffer, index=False)
         #
         try:
             csv_buffer_d2 = StringIO()
-            gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key)
-            s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key)
+            gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
+            s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
             get_csv_data = pd.read_csv(s3_obj_req['Body'])
             get_csv_data.reset_index(drop=True, inplace=True)
             # Merge Data
             csv_merge_data = pd.concat([get_csv_data, gdpr_data], axis=0)
             csv_merge_data.to_csv(csv_buffer_d2, index=False)
-            gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key,
+            # Creating Process Object
+            gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key,
                                            Body=csv_buffer_d2.getvalue())
             print("Work in progress.....")
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "404":
-                print(f"File: '{buck_key}' does not exist!, creating new file...")
-                gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key,
+                print(f"File: '{gdpr_init.buck_key}' does not exist!, creating new file...")
+                gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key,
                                                Body=csv_buffer.getvalue())
             else:
                 print("Something else went wrong")
