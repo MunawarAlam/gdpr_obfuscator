@@ -29,7 +29,6 @@ class GdprObfuscator:
 def replace_string(strg):
     return ("**********")
 
-
 def set_initial_input(json_string):
     # Read JSON file
     dict_obj = json.loads(json_string)
@@ -55,9 +54,6 @@ def obfuscator_process(df, pii):
         if df_c.lower() in new_pii:
             df[df_c] = df[df_c].apply(replace_string)
     return df
-
-
-
 
 # def save_to_s3(data, bucket_name, filename, client):
 #     '''
@@ -135,45 +131,7 @@ def getting_access_to_file(initial_input):
         print("S3 Object does not exist")
         return
 
-    # print(gdpr_init.s3_ingestion_path)
-    # print(gdpr_init.buck_key)
 
-    # for chunk in wr.s3.read_csv(path=gdpr_init.s3_ingestion_path, chunksize=gdpr_init.chunk_size):
-    #     csv_buffer = StringIO()
-    #     initial_df = pd.DataFrame(chunk)
-    #     gdpr_df = obfuscator_process(initial_df, gdpr_init.pii_fields)
-    #     gdpr_df.reset_index(drop=True, inplace=True)
-    #     gdpr_df.to_csv(csv_buffer, index=False)
-    #     #
-    #     try:
-    #         #Checking if object is exist
-    #         gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
-    #         #
-    #         csv_buffer_d2 = StringIO()
-    #         s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
-    #         get_csv_data = pd.read_csv(s3_obj_req['Body'])
-    #         get_csv_data.reset_index(drop=True, inplace=True)
-    #         # Merge Data
-    #         csv_merge_data = pd.concat([get_csv_data, gdpr_df], axis=0)
-    #         csv_merge_data.to_csv(csv_buffer_d2, index=False)
-    #         # Creating Process Object
-    #
-    #         create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer_d2.getvalue())
-    #         # gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key,
-    #         #                                Body=csv_buffer_d2.getvalue())
-    #         print("Work in progress.....")
-    #     except botocore.exceptions.ClientError as e:
-    #         if e.response["Error"]["Code"] == "404":
-    #             print(f"File: '{gdpr_init.buck_key}' does not exist!, creating new file...")
-    #             create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer.getvalue())
-    #             # gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key,
-    #             #                                Body=csv_buffer.getvalue())
-    #         else:
-    #             print("Something else went wrong")
-    #             raise
-    #         # return
-    # print('--------')
-    # print('Obfuscator process is completed..')
 
     #print(new_df)
     # ## write the data
@@ -209,6 +167,7 @@ def upload_receipt_to_s3(bucket_name, key, receipt_content):
     except Exception as e:
         logger.error(f"Failed to upload receipt to S3: {str(e)}")
         raise
+
 def lambda_handler(event, context):
     """
     Main Lambda handler function
@@ -220,40 +179,65 @@ def lambda_handler(event, context):
     """
     try:
         # Parse the input event
-        order_id = event['Order_id']
-        amount = event['Amount']
-        item = event['Item']
-
-        # Access environment variables
-        #bucket_name = os.environ.get('RECEIPT_BUCKET')
-        bucket_name = "gdpr-ingestion-bucket"
-        if not bucket_name:
-            print(bucket_name)
-            raise ValueError("Missing required environment variable RECEIPT_BUCKET")
-
-        # Create the receipt content and key destination
-        receipt_content = (
-            f"OrderID: {order_id}\n"
-            f"Amount: ${amount}\n"
-            f"Item: {item}"
-        )
-        key = f"receipts/{order_id}.txt"
-
-        # Upload the receipt to S3
-        put_bucket_name = "ma-gdpr-processed-bucket"
-        upload_receipt_to_s3(put_bucket_name, key, receipt_content)
-        #upload_receipt_to_s3(bucket_name, key, receipt_content)
-
-        logger.info(f"Successfully processed order {order_id} and stored receipt in S3 bucket {bucket_name}")
+        json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+        gdpr_init = GdprObfuscator()
+        getting_access_to_file(json_string)
+        logger.info(f"Successfully processed obfuscator")
 
         return {
             "statusCode": 200,
-            "message": "Receipt processed successfully"
+            "message": "Obfuscator processed successfully"
         }
 
     except Exception as e:
-        logger.error(f"Error processing order: {str(e)}")
+        logger.error(f"Error processing obfuscator: {str(e)}")
         raise
+
+# def lambda_handler(event, context):
+#     """
+#     Main Lambda handler function
+#     Parameters:
+#         event: Dict containing the Lambda function event data
+#         context: Lambda runtime context
+#     Returns:
+#         Dict containing status message
+#     """
+#     try:
+#         # Parse the input event
+#         order_id = event['Order_id']
+#         amount = event['Amount']
+#         item = event['Item']
+#
+#         # Access environment variables
+#         #bucket_name = os.environ.get('RECEIPT_BUCKET')
+#         bucket_name = "gdpr-ingestion-bucket"
+#         if not bucket_name:
+#             print(bucket_name)
+#             raise ValueError("Missing required environment variable RECEIPT_BUCKET")
+#
+#         # Create the receipt content and key destination
+#         receipt_content = (
+#             f"OrderID: {order_id}\n"
+#             f"Amount: ${amount}\n"
+#             f"Item: {item}"
+#         )
+#         key = f"receipts/{order_id}.txt"
+#
+#         # Upload the receipt to S3
+#         put_bucket_name = "ma-gdpr-processed-bucket"
+#         upload_receipt_to_s3(put_bucket_name, key, receipt_content)
+#         #upload_receipt_to_s3(bucket_name, key, receipt_content)
+#
+#         logger.info(f"Successfully processed order {order_id} and stored receipt in S3 bucket {bucket_name}")
+#
+#         return {
+#             "statusCode": 200,
+#             "message": "Receipt processed successfully"
+#         }
+#
+#     except Exception as e:
+#         logger.error(f"Error processing order: {str(e)}")
+#         raise
 
 if __name__ == "__main__":
     json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
