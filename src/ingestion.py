@@ -135,6 +135,7 @@ def getting_access_to_file(initial_input):
                     print(f"Key: '{buck_key}' does not exist!")
                     gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key,
                                                    Body=csv_buffer.getvalue())
+                    return
                 else:
                     print("Something else went wrong")
                     raise
