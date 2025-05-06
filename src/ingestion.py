@@ -6,6 +6,8 @@ import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
 import awswrangler as wr
+from io import StringIO
+import botocore
 
 # Initialize the S3 client outside of the handler
 s3_client = boto3.client('s3')
@@ -18,6 +20,7 @@ class GdprObfuscator:
     def __init__(self, ingestion_bucket=''):
         self.s3_client = boto3.client('s3')
         self.ingestion_bucket = ingestion_bucket
+        self.obfuscated_bucket = 'ma-temp-processed-bucket'
 
 def replace_string(strg):
     return ("**********")
@@ -101,13 +104,48 @@ def getting_access_to_file(initial_input):
         #
         ## Chunk Option
         print("hellow")
+        header = True
+        s3_resource = boto3.resource('s3')
         for chunk in wr.s3.read_csv(path=s3_path, chunksize=chunksize):
+            initial_df = pd.DataFrame(chunk)
+            gdpr_data = gdpr_process(initial_df, pii_fields)
+            gdpr_data.reset_index(drop=True, inplace=True)
+            csv_buffer = StringIO()
+            gdpr_data.to_csv(csv_buffer)
+            #
+            try:
+                csv_buffer_d2 = StringIO()
+                chk_object_exist = gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key)
+                s3_obj_req = gdpr_init.s3_client.get_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key)
+                get_csv_data = pd.read_csv(s3_obj_req['Body'])
+                get_csv_data.transpose().reset_index(drop=True).transpose()
+                print(type(get_csv_data))
+                print(type(gdpr_data))
+                csv_merge_data = pd.concat([get_csv_data, gdpr_data], axis=0)
+                print(csv_merge_data)
+                csv_merge_data.to_csv(csv_buffer_d2)
+                #print(csv_buffer_d2.getvalue())
+                # gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key,
+                #                                 Body=csv_buffer_d2.getvalue())
+                print("exist...")
+                return
+                # print(chk_bucket_exist)
+            except botocore.exceptions.ClientError as e:
+                if e.response["Error"]["Code"] == "404":
+                    print(f"Key: '{buck_key}' does not exist!")
+                    gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key,
+                                                   Body=csv_buffer.getvalue())
+                else:
+                    print("Something else went wrong")
+                    raise
+                #return
+            print('----')
+            print(csv_buffer)
+            print('----2nd---')
+            #gdpr_init.s3_client.put_object(Bucket=gdpr_init.obfuscated_bucket, Key=buck_key, Body=csv_buffer)
 
-            print(chunk.head(), "head")
-
-
-
-        #gdpr_data = gdpr_process(initial_df, pii_fields)
+            #s3_resource.Object(gdpr_init.obfuscated_bucket, buck_key).put(Body=csv_buffer.getvalue())
+            #s3_resource.Object.wait_until_exists()
 
         #new_df = initial_df.loc[initial_df["First_Name"]] = "**"
     except ClientError as ex:
