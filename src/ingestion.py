@@ -48,8 +48,6 @@ def set_initial_input(input_string, gdpr_init):
         print(e, "Uknown error")
 
 
-
-
     get_file_location = dict_obj['file_to_obfuscate'].split('/')
 
     initial_bucket = get_file_location[2]
@@ -98,7 +96,6 @@ def object_exist_check(gdpr_init):
     except botocore.exceptions.ClientError as e:
         print(e, ": No Obfuscator File Found, System is Creating file object...")
 
-
 def gdpr_csv(gdpr_init):
     object_exist_check(gdpr_init)
     for chunk in wr.s3.read_csv(path=gdpr_init.s3_ingestion_path, chunksize=gdpr_init.chunk_size):
@@ -134,6 +131,7 @@ def create_s3_object(bucket, key, body, gdpr_init):
     gdpr_init.s3_client.put_object(Bucket=bucket, Key=key, Body=body)
 
 def delete_s3_object(bucket, key, gdpr_init):
+    print("I am on delete stage..")
     gdpr_init.s3_client.delete_object(Bucket=bucket, Key=key)
 
 def getting_access_to_file(initial_input, gdpr_init):
@@ -147,8 +145,6 @@ def getting_access_to_file(initial_input, gdpr_init):
     except Exception as e:
         print(e, "S3 Object does not exist or..")
         return
-
-
 
     #print(new_df)
     # ## write the data
@@ -170,7 +166,6 @@ def getting_access_to_file(initial_input, gdpr_init):
     # dir_name = get_file_location[3]
     # file_name = get_file_location[4]
     #print(initial_bucket, dir_name, file_name)
-
 
 def upload_receipt_to_s3(bucket_name, key, receipt_content):
     """Helper function to upload receipt to S3"""
@@ -196,7 +191,8 @@ def lambda_handler(event, context):
     """
     try:
         # Parse the input event
-        input_string = event
+        #input_string = event
+        input_string = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
         gdpr_init = GdprObfuscator()
         getting_access_to_file(input_string, gdpr_init)
         logger.info(f"Successfully processed obfuscator")
