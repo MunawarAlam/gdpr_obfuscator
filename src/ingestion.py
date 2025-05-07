@@ -29,7 +29,7 @@ class GdprObfuscator:
 def replace_string(strg):
     return ("**********")
 
-def set_initial_input(json_string):
+def set_initial_input(json_string, gdpr_init):
     # Read JSON file
     dict_obj = json.loads(json_string)
 
@@ -74,16 +74,16 @@ def obfuscator_process(df, pii):
 #         Key=filename
 #     )
 
-def object_exist_check():
+def object_exist_check(gdpr_init):
     try:
         gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
-        delete_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key)
+        delete_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, gdpr_init)
     except botocore.exceptions.ClientError as e:
-        print("No Obfuscator Found, Creating New..")
+        print(e, "No Obfuscator Found, Creating New..")
 
 
-def gdpr_csv():
-    object_exist_check()
+def gdpr_csv(gdpr_init):
+    object_exist_check(gdpr_init)
     for chunk in wr.s3.read_csv(path=gdpr_init.s3_ingestion_path, chunksize=gdpr_init.chunk_size):
         csv_buffer = StringIO()
         initial_df = pd.DataFrame(chunk)
@@ -103,32 +103,32 @@ def gdpr_csv():
             csv_merge_data = pd.concat([get_csv_data, gdpr_df], axis=0)
             csv_merge_data.to_csv(csv_buffer_d2, index=False)
             # Creating Process Object
-            create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer_d2.getvalue())
+            create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer_d2.getvalue(), gdpr_init)
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "404":
                 #print(f"File: '{gdpr_init.buck_key}' does not exist!, creating new file...")
-                create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer.getvalue())
+                create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer.getvalue(), gdpr_init)
             else:
-                return ("Something else went wrong")
+                return (e, "Something else went wrong")
                 raise
     return "Obfuscator process is completed successfully"
 
-def create_s3_object(bucket, key, body):
+def create_s3_object(bucket, key, body, gdpr_init):
     gdpr_init.s3_client.put_object(Bucket=bucket, Key=key, Body=body)
 
-def delete_s3_object(bucket, key):
+def delete_s3_object(bucket, key, gdpr_init):
     gdpr_init.s3_client.delete_object(Bucket=bucket, Key=key)
 
-def getting_access_to_file(initial_input):
-    set_initial_input(initial_input)
+def getting_access_to_file(initial_input, gdpr_init):
+    set_initial_input(initial_input, gdpr_init)
     print(gdpr_init.pii_fields)
     try:
         gdpr_init.s3_client.head_bucket(Bucket=gdpr_init.ingestion_bucket)
         print("Obfuscator process Started..")
-        msg = gdpr_csv()
+        msg = gdpr_csv(gdpr_init)
         print(msg)
-    except Exception:
-        print("S3 Object does not exist")
+    except Exception as e:
+        print(e, "S3 Object does not exist or..")
         return
 
 
@@ -181,7 +181,7 @@ def lambda_handler(event, context):
         # Parse the input event
         json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
         gdpr_init = GdprObfuscator()
-        getting_access_to_file(json_string)
+        getting_access_to_file(json_string, gdpr_init)
         logger.info(f"Successfully processed obfuscator")
 
         return {
@@ -242,7 +242,7 @@ def lambda_handler(event, context):
 if __name__ == "__main__":
     json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
     gdpr_init = GdprObfuscator()
-    getting_access_to_file(json_string)
+    getting_access_to_file(json_string, gdpr_init)
 # lambda_handler({
 #     "Order_id": "12345",
 #     "Amount": 199.99,
