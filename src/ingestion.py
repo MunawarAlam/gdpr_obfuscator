@@ -2,6 +2,8 @@ import csv
 import json
 import os
 import logging
+import sys
+
 import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
@@ -20,7 +22,7 @@ class GdprObfuscator:
     def __init__(self, ingestion_bucket=''):
         self.s3_client = boto3.client('s3')
         self.ingestion_bucket = ingestion_bucket
-        self.obfuscated_bucket = 'ma-temp-processed-bucket'
+        self.obfuscated_bucket = 'ma-gdpr-processed-bucket'
         self.chunk_size = 1000
         self.buck_key = ''
         self.pii_fields = []
@@ -29,9 +31,24 @@ class GdprObfuscator:
 def replace_string(strg):
     return ("**********")
 
-def set_initial_input(json_string, gdpr_init):
+def set_initial_input(input_string, gdpr_init):
     # Read JSON file
-    dict_obj = json.loads(json_string)
+    try:
+        print("Stage 1")
+        dict_obj = json.loads(input_string)
+        print("Json is converted to dict")
+    except TypeError as e:
+        print("Stage 2")
+        if isinstance(input_string, dict):
+            dict_obj = input_string
+        else:
+            print(e, " - input type not supported")
+            return
+    except Exception as e:
+        print(e, "Uknown error")
+
+
+
 
     get_file_location = dict_obj['file_to_obfuscate'].split('/')
 
@@ -79,7 +96,7 @@ def object_exist_check(gdpr_init):
         gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
         delete_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, gdpr_init)
     except botocore.exceptions.ClientError as e:
-        print(e, "No Obfuscator Found, Creating New..")
+        print(e, ": No Obfuscator File Found, System is Creating file object...")
 
 
 def gdpr_csv(gdpr_init):
@@ -179,9 +196,9 @@ def lambda_handler(event, context):
     """
     try:
         # Parse the input event
-        json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+        input_string = event
         gdpr_init = GdprObfuscator()
-        getting_access_to_file(json_string, gdpr_init)
+        getting_access_to_file(input_string, gdpr_init)
         logger.info(f"Successfully processed obfuscator")
 
         return {
@@ -240,11 +257,8 @@ def lambda_handler(event, context):
 #         raise
 
 if __name__ == "__main__":
-    json_string = '{"file_to_obfuscate": "s3://ma-temp-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    #input_string = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    #{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}
+    input_string = sys.argv[1]
     gdpr_init = GdprObfuscator()
-    getting_access_to_file(json_string, gdpr_init)
-# lambda_handler({
-#     "Order_id": "12345",
-#     "Amount": 199.99,
-#     "Item": "Wireless Headphones"
-# },'')
+    getting_access_to_file(input_string, gdpr_init)
