@@ -7,22 +7,22 @@ from pprint import pprint
 import json
 #export PYTHONPATH=$(pwd)
 
-class MockConnection:
-    def run(self, query):
-        return [
-            ('S1000', "Omar", "Williams", "student1@university.com", "Female", 22),
-            ('S1001', "Maria", "Brown", "student2@university.com", "Male", 18)
-        ]
-    @property
-    def columns(self):
-        return [
-            {"name": "Student_ID"},
-            {"name": "First_Name"},
-            {"name": "Last_Name"},
-            {"name": "Email"},
-            {"name": "Gender"},
-            {"name": "Age"}
-        ]
+# class MockConnection:
+#     def run(self, query):
+#         return [
+#             ('S1000', "Omar", "Williams", "student1@university.com", "Female", 22),
+#             ('S1001', "Maria", "Brown", "student2@university.com", "Male", 18)
+#         ]
+#     @property
+#     def columns(self):
+#         return [
+#             {"name": "Student_ID"},
+#             {"name": "First_Name"},
+#             {"name": "Last_Name"},
+#             {"name": "Email"},
+#             {"name": "Gender"},
+#             {"name": "Age"}
+#         ]
 gdpr_init = GdprObfuscator()
 
 def test_bucket_name_converted_for_set_initial_input():
@@ -44,6 +44,35 @@ def test_correct_input_file_been_sent_for_set_initial_input():
     output_bucket = "ma-gdpr-ingestion-bucket"
     assert output_bucket == gdpr_init.ingestion_bucket
 
+def test_pii_field_s_provided_initial_input():
+    input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": []}'
+    output = set_initial_input(input, gdpr_init)
+    assert output == False
+
+
+def test_object_not_exist(caplog):
+    input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/No_Students_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    set_initial_input(input, gdpr_init)
+
+    with caplog.at_level(logging.INFO):
+        response = object_exist_check(gdpr_init)
+        assert "No Obfuscator file found from S3" in caplog.text
+
+def test_obfuscator_completed_successfully_on_pii_fields(caplog):
+    input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    set_initial_input(input, gdpr_init)
+    with caplog.at_level(logging.INFO):
+        response = gdpr_csv(gdpr_init)
+        assert "Obfuscator file created in S3" in caplog.text
+
+def test_new_obfuscator_file_is_created_with_based_on_gdpr():
+    pass
+
+def test_get_data_from_newly_created_file():
+    pass
+
+def test_lambda_handler_correct_s3_file_created():
+    pass
 
 def test_gdpr_csv():
     a = 1

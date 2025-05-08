@@ -54,7 +54,6 @@ def set_initial_input(input_string, gdpr_init):
     if len(chk_file) == 0:
         return False
 
-
     dir_name = get_file_location[3]
     file_name = get_file_location[4]
 
@@ -63,6 +62,11 @@ def set_initial_input(input_string, gdpr_init):
     #
     gdpr_init.ingestion_bucket = initial_bucket
     gdpr_init.pii_fields = dict_obj['pii_fields']
+    print(len(gdpr_init.pii_fields))
+
+    if len(gdpr_init.pii_fields) == 0:
+        print("No obfuscator field to process")
+        return False
     gdpr_init.buck_key = f'{dir_name}/{file_name}'
     gdpr_init.s3_ingestion_path = f's3://{gdpr_init.ingestion_bucket}/{dir_name}/{file_name}'
 
@@ -99,7 +103,9 @@ def object_exist_check(gdpr_init):
         gdpr_init.s3_client.head_object(Bucket=gdpr_init.obfuscated_bucket, Key=gdpr_init.buck_key)
         delete_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, gdpr_init)
     except botocore.exceptions.ClientError as e:
-        print(e, ": No Obfuscator File Found, System is Creating file object...")
+        logger.info("No Obfuscator file found from S3: bucket=%s, key=%s", gdpr_init.obfuscated_bucket, gdpr_init.buck_key)
+        print(e, ": No Obfuscator File Found, new object file will create...")
+
 
 def gdpr_csv(gdpr_init):
     object_exist_check(gdpr_init)
@@ -127,9 +133,13 @@ def gdpr_csv(gdpr_init):
             if e.response["Error"]["Code"] == "404":
                 #print(f"File: '{gdpr_init.buck_key}' does not exist!, creating new file...")
                 create_s3_object(gdpr_init.obfuscated_bucket, gdpr_init.buck_key, csv_buffer.getvalue(), gdpr_init)
+                logger.info("New Obfuscator file created in S3: bucket=%s, key=%s", gdpr_init.obfuscated_bucket,
+                            gdpr_init.buck_key)
             else:
                 return (e, "Something else went wrong")
                 raise
+    logger.info("Obfuscator file created in S3: bucket=%s, key=%s", gdpr_init.obfuscated_bucket,
+           gdpr_init.buck_key)
     return "Obfuscator process is completed successfully"
 
 def create_s3_object(bucket, key, body, gdpr_init):
