@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 import awswrangler as wr
 from io import StringIO
 import botocore
+import re
 
 # Initialize the S3 client outside of the handler
 s3_client = boto3.client('s3')
@@ -34,11 +35,8 @@ def replace_string(strg):
 def set_initial_input(input_string, gdpr_init):
     # Read JSON file
     try:
-        print("Stage 1")
         dict_obj = json.loads(input_string)
-        print("Json is converted to dict")
     except TypeError as e:
-        print("Stage 2")
         if isinstance(input_string, dict):
             dict_obj = input_string
         else:
@@ -47,12 +45,19 @@ def set_initial_input(input_string, gdpr_init):
     except Exception as e:
         print(e, "Uknown error")
 
-
+    print("I am here...........")
     get_file_location = dict_obj['file_to_obfuscate'].split('/')
-
     initial_bucket = get_file_location[2]
+
+    chk_file = re.findall(r"^[a-zA-Z0-9_-]*$", initial_bucket)
+    print(chk_file)
+    if len(chk_file) == 0:
+        return False
+
+
     dir_name = get_file_location[3]
     file_name = get_file_location[4]
+
 
     initial_bucket = initial_bucket.replace("_","-")
     #
@@ -193,6 +198,7 @@ def lambda_handler(event, context):
         # Parse the input event
         #input_string = event
         input_string = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+        #"s3://my_ingestion_bucket/new_data/file1.csv"
         gdpr_init = GdprObfuscator()
         getting_access_to_file(input_string, gdpr_init)
         logger.info(f"Successfully processed obfuscator")

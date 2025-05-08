@@ -129,6 +129,7 @@ celerybeat.pid
 # Zip
 *.zip
 layer/
+
 # Environments
 .env
 .venv
