@@ -76,5 +76,5 @@ unit-test:
 	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} coverage report)
 
 ## Run all checks
-#run-checks: security-test run-black unit-test
-run-checks: security-test run-black
+run-checks: security-test run-black unit-test
+#run-checks: security-test run-black
