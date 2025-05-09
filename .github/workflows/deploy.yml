@@ -8,7 +8,6 @@ on:
 jobs:
 
   deploy-terraform:
-    # if: false # this will cause the job to be skipped - delete to enable
     name: deploy-terraform
     runs-on: ubuntu-latest
     environment: development
