@@ -206,8 +206,8 @@ def lambda_handler(event, context):
     """
     try:
         # Parse the input event
-        #input_string = event
-        input_string = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+        input_string = event
+        #input_string = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
         #"s3://my_ingestion_bucket/new_data/file1.csv"
         gdpr_init = GdprObfuscator()
         getting_access_to_file(input_string, gdpr_init)

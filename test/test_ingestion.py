@@ -6,6 +6,7 @@ import boto3
 from pprint import pprint
 import json
 import pandas as pd
+import numpy as np
 #export PYTHONPATH=$(pwd)
 
 # class MockConnection:
@@ -66,14 +67,18 @@ def test_obfuscator_completed_successfully_on_pii_fields(caplog):
         response = gdpr_csv(gdpr_init)
         assert "Obfuscator file created in S3" in caplog.text
 
-def test_new_obfuscator_file_is_created_with_based_on_gdpr():
-    input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
-    set_initial_input(input, gdpr_init)
-    with caplog.at_level(logging.INFO):
-        response = gdpr_csv(gdpr_init)
-        assert "Obfuscator file created in S3" in caplog.text
+# def test_new_obfuscator_file_is_created_with_based_on_gdpr():
+#     input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+#     set_initial_input(input, gdpr_init)
+#     with caplog.at_level(logging.INFO):
+#         response = gdpr_csv(gdpr_init)
+#         assert "Obfuscator file created in S3" in caplog.text
 
 def test_data_converted_based_on_pii():
+    expected_output = [{'Student_ID': 'S1000', 'First_Name': '**********', 'Last_Name': 'Williams', 'Email': 'student0@university.com', 'Gender': 'Female', 'Age': 22, 'Department': 'Engineering', 'Attendance (%)': 47.50823, 'Participation_Score': 5.188714154, 'Projects_Score': 50.79, 'Total_Score': 56.09, 'Grade': 'F', 'Study_Hours_per_Week': 14.0225, 'Extracurricular_Activities': 'No', 'Internet_Access_at_Home': 'Yes', 'Parent_Education_Level': 'High School', 'Family_Income_Level': 'Low', 'Stress_Level (1-10)': 5, 'Sleep_Hours_per_Night': 4.7, 'Sleep_Hours_per_Night_Entier': 5, 'Country': 'US'},
+                       {'Student_ID': 'S1001', 'First_Name': '**********', 'Last_Name': 'Brown', 'Email': 'student1@university.com', 'Gender': 'Male', 'Age': 18, 'Department': 'Engineering', 'Attendance (%)': 45.62664, 'Participation_Score': 4.855225312, 'Projects_Score': 48.37, 'Total_Score': 50.64, 'Grade': 'A', 'Study_Hours_per_Week': 12.66, 'Extracurricular_Activities': 'No', 'Internet_Access_at_Home': 'No', 'Parent_Education_Level': None, 'Family_Income_Level': 'Low', 'Stress_Level (1-10)': 4, 'Sleep_Hours_per_Night': 9.0, 'Sleep_Hours_per_Night_Entier': 9, 'Country': 'Japan'}]
+
+
     init_input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
     set_initial_input(init_input, gdpr_init)
     gdpr_csv(gdpr_init)
@@ -85,58 +90,54 @@ def test_data_converted_based_on_pii():
     #
     body = pd.read_csv(s3_object['Body'])
     body = body.head(2)
-    output = body.to_dict()
+    body.reset_index(drop=True, inplace=True)
+    output = body.replace([np.nan], [None], regex=False).to_dict(orient='records')
+    assert  output == expected_output
     #
+
+def test_lambda_handler_gdpr_s3_file_created(caplog):
+    expected_output = [{'Student_ID': 'S1000', 'First_Name': '**********', 'Last_Name': 'Williams', 'Email': 'student0@university.com', 'Gender': 'Female', 'Age': 22, 'Department': 'Engineering', 'Attendance (%)': 47.50823, 'Participation_Score': 5.188714154, 'Projects_Score': 50.79, 'Total_Score': 56.09, 'Grade': 'F', 'Study_Hours_per_Week': 14.0225, 'Extracurricular_Activities': 'No', 'Internet_Access_at_Home': 'Yes', 'Parent_Education_Level': 'High School', 'Family_Income_Level': 'Low', 'Stress_Level (1-10)': 5, 'Sleep_Hours_per_Night': 4.7, 'Sleep_Hours_per_Night_Entier': 5, 'Country': 'US'},
+                       {'Student_ID': 'S1001', 'First_Name': '**********', 'Last_Name': 'Brown', 'Email': 'student1@university.com', 'Gender': 'Male', 'Age': 18, 'Department': 'Engineering', 'Attendance (%)': 45.62664, 'Participation_Score': 4.855225312, 'Projects_Score': 48.37, 'Total_Score': 50.64, 'Grade': 'A', 'Study_Hours_per_Week': 12.66, 'Extracurricular_Activities': 'No', 'Internet_Access_at_Home': 'No', 'Parent_Education_Level': None, 'Family_Income_Level': 'Low', 'Stress_Level (1-10)': 4, 'Sleep_Hours_per_Night': 9.0, 'Sleep_Hours_per_Night_Entier': 9, 'Country': 'Japan'}]
+
+
+    #init_input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    #set_initial_input(init_input, gdpr_init)
+    #gdpr_csv(gdpr_init)
+    #
+    input = {
+        "file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv",
+        "pii_fields": ["first_Name", "email_address"]
+    }
+    lambda_handler(input, None)
+
+    s3_object = gdpr_init.s3_client.get_object(
+        Bucket='ma-gdpr-processed-bucket',
+        Key='new_data/Students_Grading_Dataset.csv'
+    )
+    #
+    body = pd.read_csv(s3_object['Body'])
+    body = body.head(2)
+    body.reset_index(drop=True, inplace=True)
+    output = body.replace([np.nan], [None], regex=False).to_dict(orient='records')
     print(output)
-    #expected_data =
+    assert  output == expected_output
+    #
+    with caplog.at_level(logging.INFO):
+        response = lambda_handler(input, None)
+        assert "Successfully processed obfuscator" in caplog.text
 
-def test_lambda_handler_gdpr_s3_file_created():
-    pass
+def test_lambda_handler_gdpr_s3_processed_obfuscator_successfully(caplog):
+    input = {
+        "file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv",
+        "pii_fields": ["first_Name", "email_address"]
+    }
+    lambda_handler(input, None)
 
-def test_gdpr_csv():
-    a = 1
-    assert a == 1
-    pass
-
-# @pytest.fixture
-# def mock_conn():
-#     return MockConnection()
-
-
-# @pytest.fixture()
-# def s3_mock_with_bucket():
-#     with mock_aws():
-#         s3 = boto3.client('s3', region_name='eu-west-2')
-#
-#         s3.create_bucket(Bucket='ingestion-bucket-neural-normalisers-new',
-#                          CreateBucketConfiguration={
-#                              'LocationConstraint': 'eu-west-2'}
-#                          )
-#         yield s3
-#
-
-# @pytest.fixture()
-# def s3_mock_with_objects(s3_mock_with_bucket):
-#     for i in range(10):
-#         for table in tables:
-#             fake_timestamp = f'{table}/2024-11-14T09:27:40.35701{i}.json'
-#             s3_mock_with_bucket.put_object(Bucket='ingestion-bucket-neural-normalisers-new',
-#                             Body=b'test_content',
-#                             Key=fake_timestamp)
-#     yield s3_mock_with_bucket
-#
-#
-# expected_data = [
-#             {
-#                 "currency_id": 1,
-#                 "currency_code": "GBP",
-#                 "created_at": "2022-11-03T14:20:49",
-#                 "amount": 100.0
-#             },
-#             {
-#                 "currency_id": 2,
-#                 "currency_code": "USD",
-#                 "created_at": "2022-11-03T14:20:49",
-#                 "amount": 200.0
-#             }
-#         ]
+    s3_object = gdpr_init.s3_client.get_object(
+        Bucket='ma-gdpr-processed-bucket',
+        Key='new_data/Students_Grading_Dataset.csv'
+    )
+    #
+    with caplog.at_level(logging.INFO):
+        response = lambda_handler(input, None)
+        assert "Successfully processed obfuscator" in caplog.text
