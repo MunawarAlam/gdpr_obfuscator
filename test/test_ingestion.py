@@ -64,7 +64,6 @@ def test_data_converted_based_on_pii():
     output = body.replace([np.nan], [None], regex=False).to_dict(orient='records')
     assert  output == expected_output
     #
-
 def test_lambda_handler_gdpr_s3_file_created(caplog):
     expected_output = [{'Student_ID': 'S1000', 'First_Name': '**********', 'Last_Name': 'Williams', 'Email': 'student0@university.com', 'Gender': 'Female', 'Age': 22, 'Department': 'Engineering', 'Attendance (%)': 47.50823, 'Participation_Score': 5.188714154, 'Projects_Score': 50.79, 'Total_Score': 56.09, 'Grade': 'F', 'Study_Hours_per_Week': 14.0225, 'Extracurricular_Activities': 'No', 'Internet_Access_at_Home': 'Yes', 'Parent_Education_Level': 'High School', 'Family_Income_Level': 'Low', 'Stress_Level (1-10)': 5, 'Sleep_Hours_per_Night': 4.7, 'Sleep_Hours_per_Night_Entier': 5, 'Country': 'US'},
                        {'Student_ID': 'S1001', 'First_Name': '**********', 'Last_Name': 'Brown', 'Email': 'student1@university.com', 'Gender': 'Male', 'Age': 18, 'Department': 'Engineering', 'Attendance (%)': 45.62664, 'Participation_Score': 4.855225312, 'Projects_Score': 48.37, 'Total_Score': 50.64, 'Grade': 'A', 'Study_Hours_per_Week': 12.66, 'Extracurricular_Activities': 'No', 'Internet_Access_at_Home': 'No', 'Parent_Education_Level': None, 'Family_Income_Level': 'Low', 'Stress_Level (1-10)': 4, 'Sleep_Hours_per_Night': 9.0, 'Sleep_Hours_per_Night_Entier': 9, 'Country': 'Japan'}]
