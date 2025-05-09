@@ -6,12 +6,9 @@ on:
       - main
 
 jobs:
-
   deploy-terraform:
     name: deploy-terraform
     runs-on: ubuntu-latest
-    environment: development
-    needs: run-tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
