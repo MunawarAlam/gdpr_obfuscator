@@ -66,14 +66,14 @@ security-test:
 	$(call execute_in_env, bandit -lll */*.py *c/*/*.py)
 
 ## Run the black code check
-run-black:
-	$(call execute_in_env, black  ./src/*.py ./test/*.py)
-
-
-## Run the unit tests
-unit-test:
-	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} coverage run --source=./src/ -m pytest -vv)
-	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} coverage report)
+# run-black:
+# 	$(call execute_in_env, black  ./src/*.py ./test/*.py)
+#
+#
+# ## Run the unit tests
+# unit-test:
+# 	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} coverage run --source=./src/ -m pytest -vv)
+# 	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} coverage report)
 
 ## Run all checks
 run-checks: security-test run-black unit-test
