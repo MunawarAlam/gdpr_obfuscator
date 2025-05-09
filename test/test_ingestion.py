@@ -5,6 +5,7 @@ from moto import mock_aws
 import boto3
 from pprint import pprint
 import json
+import pandas as pd
 #export PYTHONPATH=$(pwd)
 
 # class MockConnection:
@@ -66,12 +67,30 @@ def test_obfuscator_completed_successfully_on_pii_fields(caplog):
         assert "Obfuscator file created in S3" in caplog.text
 
 def test_new_obfuscator_file_is_created_with_based_on_gdpr():
-    pass
+    input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    set_initial_input(input, gdpr_init)
+    with caplog.at_level(logging.INFO):
+        response = gdpr_csv(gdpr_init)
+        assert "Obfuscator file created in S3" in caplog.text
 
-def test_get_data_from_newly_created_file():
-    pass
+def test_data_converted_based_on_pii():
+    init_input = '{"file_to_obfuscate": "s3://ma-gdpr-ingestion-bucket/new_data/Students_Grading_Dataset.csv","pii_fields": ["first_Name", "email_address"]}'
+    set_initial_input(init_input, gdpr_init)
+    gdpr_csv(gdpr_init)
+    #
+    s3_object = gdpr_init.s3_client.get_object(
+        Bucket='ma-gdpr-processed-bucket',
+        Key='new_data/Students_Grading_Dataset.csv'
+    )
+    #
+    body = pd.read_csv(s3_object['Body'])
+    body = body.head(2)
+    output = body.to_dict()
+    #
+    print(output)
+    #expected_data =
 
-def test_lambda_handler_correct_s3_file_created():
+def test_lambda_handler_gdpr_s3_file_created():
     pass
 
 def test_gdpr_csv():
