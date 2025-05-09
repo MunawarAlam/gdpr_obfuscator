@@ -15,8 +15,8 @@ resource "aws_s3_object" "ingestion_lambda" {
   source = "${path.module}/../src/ingestion.zip"
 }
 
-resource "aws_s3_object" "pandas_layer" {
-  bucket = aws_s3_bucket.lambda_code_bucket.id
-  key = "pandas_layer"
-  source = "${path.module}/../layer.zip"
-}
+# resource "aws_s3_object" "pandas_layer" {
+#   bucket = aws_s3_bucket.lambda_code_bucket.id
+#   key = "pandas_layer"
+#   source = "${path.module}/../layer.zip"
+# }
