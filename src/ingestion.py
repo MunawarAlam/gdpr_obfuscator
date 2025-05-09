@@ -172,3 +172,4 @@ if __name__ == "__main__":
     input_string = sys.argv[1]
     gdpr_init = GdprObfuscator()
     getting_access_to_file(input_string, gdpr_init)
+
