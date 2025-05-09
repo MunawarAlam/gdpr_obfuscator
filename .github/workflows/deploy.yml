@@ -17,3 +17,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Create-Environment
+        run: make create-environment
+      - name: Install Modules
+        run: make dev-setup
+
+      - name: safety check
+        uses: pyupio/safety-action@v1
+
+      - name: run-all-checks
+        run: make run-checks
