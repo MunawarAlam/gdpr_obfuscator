@@ -5,19 +5,19 @@ data "archive_file" "ingestion" {
   output_path = "${path.module}/../src/ingestion.zip"
 }
 
-data "archive_file" "pandas_layer" {
-  type = "zip"
-  output_file_mode = "0666"
-  source_dir = "${path.module}/../layer"
-  output_path = "${path.module}/../layer.zip"
-}
-
-resource "aws_lambda_layer_version" "pandas_layer" {
-  layer_name = "pandas_layer"
-  compatible_runtimes = ["python3.12"]
-  s3_bucket = aws_s3_bucket.lambda_code_bucket.id
-  s3_key = aws_s3_object.pandas_layer.key
-}
+# data "archive_file" "pandas_layer" {
+#   type = "zip"
+#   output_file_mode = "0666"
+#   source_dir = "${path.module}/../layer"
+#   output_path = "${path.module}/../layer.zip"
+# }
+#
+# resource "aws_lambda_layer_version" "pandas_layer" {
+#   layer_name = "pandas_layer"
+#   compatible_runtimes = ["python3.12"]
+#   s3_bucket = aws_s3_bucket.lambda_code_bucket.id
+#   s3_key = aws_s3_object.pandas_layer.key
+# }
 
 
 resource "aws_lambda_function" "ingestion" {
