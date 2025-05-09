@@ -5,7 +5,7 @@
 #################################################################################
 
 PROJECT_NAME = gdpr-obfuscator
-REGION = eu-west-2
+REGION = eu-north-1
 PYTHON_INTERPRETER = python
 WD=$(shell pwd)
 PYTHONPATH=${WD}

@@ -23,8 +23,9 @@ jobs:
       - name: Install Modules
         run: make dev-setup
 
-      - name: safety check
+      - name: Run Safety CLI to check for vulnerabilities
         uses: pyupio/safety-action@v1
-
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
       - name: run-all-checks
         run: make run-checks
