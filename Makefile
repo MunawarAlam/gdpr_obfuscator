@@ -77,4 +77,4 @@ unit-test:
 
 ## Run all checks
 run-checks: security-test run-black unit-test
-#run-checks: security-test run-black
+
